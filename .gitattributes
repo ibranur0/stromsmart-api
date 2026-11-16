@@ -1,0 +1,4 @@
+# Vanlige linjeskift (LF) i alle tekstfiler, også når repoet hentes ut på Windows.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.jar binary

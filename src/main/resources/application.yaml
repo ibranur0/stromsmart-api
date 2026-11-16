@@ -1,0 +1,62 @@
+server:
+  # Cloud Run sier hvilken port appen skal lytte på.
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: stromsmart-api
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+stromsmart:
+  prices:
+    base-url: https://www.hvakosterstrommen.no/api/v1/prices
+    user-agent: stromsmart-api (https://github.com/ibranur0/stromsmart-api)
+    history-days: 30
+    import-every: 30m
+    pause: 250ms
+    # Slås av i testene, som kaller innhentingen selv.
+    import-enabled: true
+  cors:
+    allowed-origins:
+      - http://127.0.0.1:8138
+      - http://localhost:8138
+
+---
+# Oppsettet i skyen (Cloud Run og PostgreSQL hos Neon). Slås på med SPRING_PROFILES_ACTIVE=cloud.
+# Databaseadresse, bruker, passord og import-token kommer fra miljøvariabler.
+spring:
+  config:
+    activate:
+      on-profile: cloud
+  datasource:
+    hikari:
+      # Få tilkoblinger, og ingen som står åpne uten grunn, så databasen kan sove når den ikke brukes.
+      maximum-pool-size: 4
+      minimum-idle: 0
+      idle-timeout: 60000 # millisekunder
+  flyway:
+    # Migreringene trenger en direkte tilkobling, mens appen bruker Neons pooler.
+    # Når Flyway har egen adresse, må bruker og passord også settes her.
+    url: ${FLYWAY_URL:${spring.datasource.url}}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+
+stromsmart:
+  prices:
+    # Cloud Scheduler kaller /internal/import i stedet.
+    import-enabled: false
